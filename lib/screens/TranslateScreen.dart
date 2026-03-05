@@ -1,11 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart'; // Required for kIsWeb
-import '../components/GlobalNavbar.dart';
+import 'package:vani/components/GlobalNavbar.dart';
 
 class TranslateScreen extends StatefulWidget {
-  final VoidCallback toggleTheme; // Added to maintain theme state
+  final VoidCallback toggleTheme; // Added to handle theme switching
   const TranslateScreen({super.key, required this.toggleTheme});
 
   @override
@@ -17,7 +16,6 @@ class _TranslateScreenState extends State<TranslateScreen> {
   CameraController? _controller;
   List<CameraDescription>? _cameras;
   int _selectedCameraIndex = 0;
-  final TextEditingController _textController = TextEditingController();
 
   @override
   void initState() {
@@ -41,24 +39,23 @@ class _TranslateScreenState extends State<TranslateScreen> {
           _cameras![_selectedCameraIndex],
           ResolutionPreset.high,
           enableAudio: false,
-          imageFormatGroup: kIsWeb ? ImageFormatGroup.unknown : ImageFormatGroup.jpeg,
         );
 
         try {
           await _controller!.initialize();
-          if (!mounted) return; // Fix: Check if widget is still in tree
-          setState(() => isCameraOn = true);
+          if (mounted) setState(() => isCameraOn = true);
         } catch (e) {
           debugPrint("Camera error: $e");
         }
       }
     } else {
       await _controller?.dispose();
-      if (!mounted) return;
-      setState(() {
-        isCameraOn = false;
-        _controller = null;
-      });
+      if (mounted) {
+        setState(() {
+          isCameraOn = false;
+          _controller = null;
+        });
+      }
     }
   }
 
@@ -74,7 +71,6 @@ class _TranslateScreenState extends State<TranslateScreen> {
   @override
   void dispose() {
     _controller?.dispose();
-    _textController.dispose();
     super.dispose();
   }
 
@@ -94,24 +90,46 @@ class _TranslateScreenState extends State<TranslateScreen> {
     const primaryColor = Color(0xFF6366F1);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Adaptive Background Glows
-          Positioned(top: -100, left: -100, child: _BlurCircle(color: primaryColor.withOpacity(isDark ? 0.15 : 0.1))),
-          Positioned(bottom: -150, right: -50, child: _BlurCircle(color: Colors.blue.withOpacity(isDark ? 0.12 : 0.08))),
-          
+          // Background Glows
+          Positioned(
+            top: -100,
+            left: -100,
+            child: _BlurCircle(
+              color: primaryColor.withOpacity(isDark ? 0.15 : 0.1),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            right: -50,
+            child: _BlurCircle(
+              color: Colors.blue.withOpacity(isDark ? 0.12 : 0.08),
+            ),
+          ),
+
           SafeArea(
             child: Column(
               children: [
-                // Integrated Global Navbar
-                GlobalNavbar(toggleTheme: widget.toggleTheme, activeRoute: 'translate'),
-                
+                // THE CONSTANT NAVBAR
+                GlobalNavbar(
+                  toggleTheme: widget.toggleTheme,
+                  activeRoute: 'translate',
+                ),
+
+                // MAIN CONTENT
                 Expanded(
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    child: isWeb ? _buildWebLayout(isDark) : _buildMobileLayout(isDark),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 10,
+                    ),
+                    child: isWeb
+                        ? _buildWebLayout(isDark)
+                        : _buildMobileLayout(isDark),
                   ),
                 ),
               ],
@@ -122,21 +140,22 @@ class _TranslateScreenState extends State<TranslateScreen> {
     );
   }
 
-  // --- Layout Builders ---
-
   Widget _buildWebLayout(bool isDark) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(flex: 7, child: _videoCaptureSection(isDark)),
         const SizedBox(width: 30),
-        Expanded(flex: 4, child: Column(
-          children: [
-            _currentDetectionSection(isDark),
-            const SizedBox(height: 24),
-            _translationPanel(isDark),
-          ],
-        )),
+        Expanded(
+          flex: 4,
+          child: Column(
+            children: [
+              _currentDetectionSection(isDark),
+              const SizedBox(height: 24),
+              _translationPanel(isDark),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -158,29 +177,41 @@ class _TranslateScreenState extends State<TranslateScreen> {
       isDark: isDark,
       child: Column(
         children: [
-          _buildHeader(isDark, Icons.sensors_rounded, "AI VISION STREAM", "Processing real-time ISL data"),
+          _buildHeader(
+            isDark,
+            Icons.sensors_rounded,
+            "AI VISION STREAM",
+            "Processing real-time ISL data",
+          ),
           const SizedBox(height: 15),
           Container(
             height: 440,
-            width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
-                if (!isDark) BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.15), blurRadius: 30, spreadRadius: -10)
+                if (!isDark)
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withOpacity(0.15),
+                    blurRadius: 30,
+                    spreadRadius: -10,
+                  ),
               ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
               child: Stack(
-                fit: StackFit.expand, // Ensures camera fills the container
                 children: [
                   Center(
-                    child: isCameraOn && _controller != null && _controller!.value.isInitialized
-                      ? CameraPreview(_controller!)
-                      : _buildCameraPlaceholder(),
+                    child:
+                        isCameraOn &&
+                            _controller != null &&
+                            _controller!.value.isInitialized
+                        ? CameraPreview(_controller!)
+                        : _buildCameraPlaceholder(),
                   ),
-                  if(isCameraOn) Positioned(top: 20, right: 20, child: _buildLiveBadge()),
+                  if (isCameraOn)
+                    Positioned(top: 20, right: 20, child: _buildLiveBadge()),
                 ],
               ),
             ),
@@ -190,12 +221,13 @@ class _TranslateScreenState extends State<TranslateScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildActionButton(
-                onPressed: _switchCamera, 
-                icon: Icons.flip_camera_android_rounded, 
+                isDark: isDark,
+                onPressed: _switchCamera,
+                icon: Icons.flip_camera_android_rounded,
                 label: "Switch",
               ),
               const SizedBox(width: 20),
-              _buildCameraToggle(),
+              _buildCameraToggle(isDark),
             ],
           ),
         ],
@@ -209,11 +241,24 @@ class _TranslateScreenState extends State<TranslateScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.05)),
-          child: Icon(Icons.videocam_off_rounded, color: Colors.white.withOpacity(0.2), size: 60),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.05),
+          ),
+          child: Icon(
+            Icons.videocam_off_rounded,
+            color: Colors.white.withOpacity(0.2),
+            size: 60,
+          ),
         ),
         const SizedBox(height: 15),
-        Text("Camera Stream Offline", style: TextStyle(color: Colors.white.withOpacity(0.4), fontWeight: FontWeight.w500)),
+        Text(
+          "Camera Stream Offline",
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.4),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -221,13 +266,23 @@ class _TranslateScreenState extends State<TranslateScreen> {
   Widget _buildLiveBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Colors.redAccent,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.circle, color: Colors.white, size: 8),
           SizedBox(width: 8),
-          Text("LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(
+            "LIVE",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -236,11 +291,20 @@ class _TranslateScreenState extends State<TranslateScreen> {
   Widget _currentDetectionSection(bool isDark) {
     return _GlassContainer(
       isDark: isDark,
-      gradient: LinearGradient(colors: [const Color(0xFF6366F1).withOpacity(0.1), Colors.transparent]),
+      gradient: LinearGradient(
+        colors: [const Color(0xFF6366F1).withOpacity(0.1), Colors.transparent],
+      ),
       child: Column(
         children: [
-          Text("REAL-TIME PREDICTION", 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: isDark ? Colors.white54 : Colors.grey, letterSpacing: 1.5)),
+          Text(
+            "REAL-TIME PREDICTION",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white54 : Colors.grey,
+              letterSpacing: 1.5,
+            ),
+          ),
           const SizedBox(height: 15),
           Container(
             width: double.infinity,
@@ -248,11 +312,20 @@ class _TranslateScreenState extends State<TranslateScreen> {
             decoration: BoxDecoration(
               color: isDark ? Colors.black26 : Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.1)),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+              ),
             ),
             child: const Center(
-              child: Text("Waiting...", 
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF6366F1), letterSpacing: -1)),
+              child: Text(
+                "Waiting...",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF6366F1),
+                  letterSpacing: -1,
+                ),
+              ),
             ),
           ),
         ],
@@ -266,35 +339,58 @@ class _TranslateScreenState extends State<TranslateScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("TRANSCRIPTION", 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: isDark ? Colors.white54 : Colors.grey, letterSpacing: 1.5)),
+          Text(
+            "TRANSCRIPTION",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white54 : Colors.grey,
+              letterSpacing: 1.5,
+            ),
+          ),
           const SizedBox(height: 15),
           TextField(
-            controller: _textController,
             maxLines: 3,
-            style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87),
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
             decoration: InputDecoration(
               hintText: "Captured text will appear here...",
-              hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.grey),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white24 : Colors.grey,
+              ),
               filled: true,
-              fillColor: isDark ? Colors.black26 : const Color(0xFFF1F5F9).withOpacity(0.5),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+              fillColor: isDark
+                  ? Colors.black26
+                  : const Color(0xFFF1F5F9).withOpacity(0.5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildGradientButton("Start Capturing", Icons.play_arrow_rounded)),
+              Expanded(
+                child: _buildGradientButton(
+                  "Start Capturing",
+                  Icons.play_arrow_rounded,
+                ),
+              ),
               const SizedBox(width: 12),
-              _buildIconButton(Icons.delete_outline_rounded, Colors.redAccent, () => _textController.clear()),
+              _buildIconButton(
+                isDark,
+                Icons.delete_outline_rounded,
+                Colors.redAccent,
+              ),
             ],
           ),
         ],
       ),
     );
   }
-
-  // --- UI Components ---
 
   Widget _buildHeader(bool isDark, IconData icon, String title, String sub) {
     return Row(
@@ -304,7 +400,14 @@ class _TranslateScreenState extends State<TranslateScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
             Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
@@ -315,24 +418,36 @@ class _TranslateScreenState extends State<TranslateScreen> {
   Widget _buildGradientButton(String label, IconData icon) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF4F46E5)]),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+        ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: ElevatedButton.icon(
         onPressed: () {},
         icon: Icon(icon, color: Colors.white),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
       ),
     );
   }
 
-  Widget _buildActionButton({required VoidCallback onPressed, required IconData icon, required String label}) {
+  Widget _buildActionButton({
+    required bool isDark,
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+  }) {
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
@@ -346,7 +461,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
     );
   }
 
-  Widget _buildCameraToggle() {
+  Widget _buildCameraToggle(bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -356,7 +471,14 @@ class _TranslateScreenState extends State<TranslateScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(isCameraOn ? "ON" : "OFF", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6366F1), fontSize: 12)),
+          Text(
+            isCameraOn ? "ON" : "OFF",
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF6366F1),
+              fontSize: 12,
+            ),
+          ),
           Switch.adaptive(
             value: isCameraOn,
             activeColor: const Color(0xFF6366F1),
@@ -367,22 +489,20 @@ class _TranslateScreenState extends State<TranslateScreen> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildIconButton(bool isDark, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(15),
       ),
       child: IconButton(
-        onPressed: onTap,
+        onPressed: () {},
         icon: Icon(icon, color: color),
         padding: const EdgeInsets.all(15),
       ),
     );
   }
 }
-
-// Keep your _BlurCircle, _GlassContainer, and _InstructionDialog classes here as they were...
 
 // --- SHARED CLASSES ---
 
@@ -392,9 +512,13 @@ class _BlurCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 400, height: 400,
+      width: 400,
+      height: 400,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container(color: Colors.transparent)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
+        child: Container(color: Colors.transparent),
+      ),
     );
   }
 }
@@ -403,7 +527,11 @@ class _GlassContainer extends StatelessWidget {
   final Widget child;
   final bool isDark;
   final Gradient? gradient;
-  const _GlassContainer({required this.child, required this.isDark, this.gradient});
+  const _GlassContainer({
+    required this.child,
+    required this.isDark,
+    this.gradient,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -414,12 +542,20 @@ class _GlassContainer extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.white.withOpacity(0.6),
             borderRadius: BorderRadius.circular(30),
             gradient: gradient,
-            border: Border.all(color: isDark ? Colors.white10 : Colors.white.withOpacity(0.4), width: 1.5),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.white.withOpacity(0.4),
+              width: 1.5,
+            ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.02), blurRadius: 20)
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.3 : 0.02),
+                blurRadius: 20,
+              ),
             ],
           ),
           child: child,
@@ -431,29 +567,173 @@ class _GlassContainer extends StatelessWidget {
 
 class _InstructionDialog extends StatelessWidget {
   const _InstructionDialog();
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const primary = Color(0xFF6366F1);
+
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
       child: AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white.withOpacity(0.9),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        title: const Column(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        // Increased radius and thinner border for a modern look
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: primary.withOpacity(0.1), width: 1),
+        ),
+        // Adding the 'X' button in the title section
+        titlePadding: const EdgeInsets.only(top: 20, right: 20, left: 30),
+        title: Column(
           children: [
-            Icon(Icons.psychology_outlined, color: primary, size: 40),
-            SizedBox(height: 10),
-            Text("VANI CORE READY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+            Align(
+              alignment: Alignment.topRight,
+              child: InkWell(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.close, size: 20, color: Colors.white38),
+              ),
+            ),
+            const Text(
+              "How to Use VANI",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Follow these steps to translate sign language",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
           ],
         ),
-        content: const Text("Initialize the AI module by toggling the camera power. Ensure your hands are within the capture frame for real-time ISL translation.",
-          textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 25,
+        ),
+        content: SizedBox(
+          width: 450, // Controls the width of the popup
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStep(
+                1,
+                "Position yourself",
+                "Make sure you are clearly visible in the camera frame with good lighting",
+              ),
+              _buildStep(
+                2,
+                "Turn on the camera",
+                "Toggle the camera switch to enable your webcam",
+              ),
+              _buildStep(
+                3,
+                "Start detection",
+                "Click the 'Start' button to begin sign language detection",
+              ),
+              _buildStep(
+                4,
+                "Perform signs",
+                "Make clear sign language gestures in front of the camera",
+              ),
+              _buildStep(
+                5,
+                "View translation",
+                "The detected signs and translation will appear in the translation box",
+              ),
+            ],
+          ),
+        ),
         actions: [
           Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("INITIALIZE MODULE", style: TextStyle(color: primary, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 25),
+              child: SizedBox(
+                width: 120, // Match the size of the 'Got it' button
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(
+                      0xFF4379F2,
+                    ), // Blue shade from reference
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    "Got it",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep(int number, String title, String description) {
+    const primary = Color(0xFF6366F1);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Circular Badge
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                "$number",
+                style: const TextStyle(
+                  color: primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 18),
+          // Text Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
